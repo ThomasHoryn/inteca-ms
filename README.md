@@ -1,1 +1,1 @@
-# inteca-ms
+# inteca-credit-microservices

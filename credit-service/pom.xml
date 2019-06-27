@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.1.5.RELEASE</version>
+        <relativePath/> <!-- lookup parent from repositories -->
+    </parent>
+    <groupId>com.tomhor</groupId>
+    <artifactId>credit-service</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>credit-service</name>
+    <description>Inteca Credit Service</description>
+
+    <properties>
+        <java.version>11</java.version>
+
+        <!--set this to your docker acct name-->
+        <docker.image.prefix>thomashoryn</docker.image.prefix>
+
+        <!--Set to name of project-->
+        <docker.image.name>creditserviceinteca</docker.image.name>
+
+        <docker.startParallel>true</docker.startParallel>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+            <version>2.1.1.RELEASE</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+
+                <configuration>
+
+                    <!--<dockerHost>http://127.0.0.1:2375</dockerHost>-->
+                    <dockerHost>unix:///var/run/docker.sock</dockerHost>
+
+                    <verbose>true</verbose>
+                    <images>
+                        <!--mysql container-->
+                        <image>
+                            <name>mysql</name>
+                            <alias>mysqldb</alias>
+                            <run>
+                                <!--expose port for dn-->
+                                <ports>
+                                    <port>3306:3306</port>
+                                </ports>
+                                <!--set env prams for mysql image-->
+                                <env>
+                                    <MYSQL_DATABASE>database</MYSQL_DATABASE>
+                                    <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
+                                </env>
+                                <!--wait for db to start-->
+                                <wait>
+                                    <time>1000</time>
+                                </wait>
+                            </run>
+                        </image>
+                        <image>
+                            <name>${docker.image.prefix}/${docker.image.name}</name>
+                            <build>
+                                <dockerFileDir>${project.basedir}/target/dockerfile/</dockerFileDir>
+
+                                <!--copies artficact to docker build dir in target-->
+                                <assembly>
+                                    <descriptorRef>artifact</descriptorRef>
+                                </assembly>
+                                <tags>
+                                    <tag>latest</tag>
+                                    <tag>${project.version}</tag>
+                                </tags>
+                            </build>
+                            <run>
+                                <ports>
+                                    <port>8000:8000</port>
+                                </ports>
+                                <links>
+                                    <link>customerserviceinteca:customerserviceinteca</link>
+                                    <link>productserviceinteca:productserviceinteca</link>
+                                    <link>mysqldb:mysqldb</link>
+                                </links>
+                                <env>
+                                    <SPRING_DATASOURCE_URL>jdbc:mysql://mysqldb:3306/database
+                                    </SPRING_DATASOURCE_URL>
+                                    <SPRING_PROFILES_ACTIVE>mysql</SPRING_PROFILES_ACTIVE>
+                                    <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
+                                    <SPRING_PRODUCTSERVICEINTECA_HOST>productserviceinteca
+                                    </SPRING_PRODUCTSERVICEINTECA_HOST>
+                                    <SPRING_CUSTOMERSERVICEINTECA_HOST>customerserviceinteca
+                                    </SPRING_CUSTOMERSERVICEINTECA_HOST>
+                                </env>
+                                <dependsOn>
+                                    <container>productserviceinteca</container>
+                                    <container>customerserviceinteca</container>
+                                    <container>mysql</container>
+                                </dependsOn>
+                                <wait>
+                                    <time>2000</time>
+                                </wait>
+                            </run>
+                        </image>
+                        <!-- productserviceinteca -->
+                        <image>
+                            <name>thomashoryn/productserviceinteca</name>
+                            <alias>productserviceinteca</alias>
+                            <run>
+                                <ports>
+                                    <port>8100:8100</port>
+                                </ports>
+                                <links>
+                                    <link>mysqldb:mysqldb</link>
+                                </links>
+                                <env>
+                                    <SPRING_DATASOURCE_URL>jdbc:mysql://mysqldb:3306/database
+                                    </SPRING_DATASOURCE_URL>
+                                    <SPRING_PROFILES_ACTIVE>mysql</SPRING_PROFILES_ACTIVE>
+                                    <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
+                                    <SPRING_CREDITSERVICEINTECA_HOST>creditserviceinteca
+                                    </SPRING_CREDITSERVICEINTECA_HOST>
+                                </env>
+                                <dependsOn>
+                                    <container>creditserviceinteca</container>
+                                    <container>customerserviceinteca</container>
+                                    <container>mysql</container>
+                                </dependsOn>
+                                <wait>
+                                    <time>3000</time>
+                                </wait>
+                            </run>
+                        </image>
+                        <!-- customerserviceinteca -->
+                        <image>
+                            <name>thomashoryn/customerserviceinteca</name>
+                            <alias>customerserviceinteca</alias>
+                            <run>
+                                <ports>
+                                    <port>8200:8200</port>
+                                </ports>
+                                <links>
+                                    <link>mysqldb:mysqldb</link>
+                                </links>
+                                <env>
+                                    <SPRING_DATASOURCE_URL>jdbc:mysql://mysqldb:3306/database
+                                    </SPRING_DATASOURCE_URL>
+                                    <SPRING_PROFILES_ACTIVE>mysql</SPRING_PROFILES_ACTIVE>
+                                    <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
+                                    <SPRING_CREDITSERVICEINTECA_HOST>creditserviceinteca
+                                    </SPRING_CREDITSERVICEINTECA_HOST>
+                                </env>
+                                <dependsOn>
+                                    <container>creditserviceinteca</container>
+                                    <container>productserviceinteca</container>
+                                    <container>mysql</container>
+                                </dependsOn>
+                                <wait>
+                                    <time>4000</time>
+                                </wait>
+                            </run>
+                        </image>
+                    </images>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
