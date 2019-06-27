@@ -78,6 +78,7 @@
             <plugin>
                 <groupId>io.fabric8</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
+                <version>0.20.0</version>
 
                 <configuration>
 
@@ -107,19 +108,8 @@
                             </run>
                         </image>
                         <image>
-                            <name>${docker.image.prefix}/${docker.image.name}</name>
-                            <build>
-                                <dockerFileDir>${project.basedir}/target/dockerfile/</dockerFileDir>
-
-                                <!--copies artficact to docker build dir in target-->
-                                <assembly>
-                                    <descriptorRef>artifact</descriptorRef>
-                                </assembly>
-                                <tags>
-                                    <tag>latest</tag>
-                                    <tag>${project.version}</tag>
-                                </tags>
-                            </build>
+                            <name>thomashoryn/creditserviceinteca</name>
+                            <alias>creditserviceinteca</alias>
                             <run>
                                 <ports>
                                     <port>8000:8000</port>
@@ -133,52 +123,19 @@
                                     <SPRING_DATASOURCE_URL>jdbc:mysql://mysqldb:3306/database
                                     </SPRING_DATASOURCE_URL>
                                     <SPRING_PROFILES_ACTIVE>mysql</SPRING_PROFILES_ACTIVE>
-                                    <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
-                                    <SPRING_PRODUCTSERVICEINTECA_HOST>productserviceinteca
-                                    </SPRING_PRODUCTSERVICEINTECA_HOST>
-                                    <SPRING_CUSTOMERSERVICEINTECA_HOST>customerserviceinteca
-                                    </SPRING_CUSTOMERSERVICEINTECA_HOST>
                                 </env>
                                 <dependsOn>
+                                    <container>customerserviceinteca</container>
                                     <container>productserviceinteca</container>
-                                    <container>customerserviceinteca</container>
                                     <container>mysql</container>
                                 </dependsOn>
                                 <wait>
-                                    <time>2000</time>
+                                    <time>5000</time>
                                 </wait>
                             </run>
                         </image>
-                        <!-- productserviceinteca -->
-                        <image>
-                            <name>thomashoryn/productserviceinteca</name>
-                            <alias>productserviceinteca</alias>
-                            <run>
-                                <ports>
-                                    <port>8100:8100</port>
-                                </ports>
-                                <links>
-                                    <link>mysqldb:mysqldb</link>
-                                </links>
-                                <env>
-                                    <SPRING_DATASOURCE_URL>jdbc:mysql://mysqldb:3306/database
-                                    </SPRING_DATASOURCE_URL>
-                                    <SPRING_PROFILES_ACTIVE>mysql</SPRING_PROFILES_ACTIVE>
-                                    <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
-                                    <SPRING_CREDITSERVICEINTECA_HOST>creditserviceinteca
-                                    </SPRING_CREDITSERVICEINTECA_HOST>
-                                </env>
-                                <dependsOn>
-                                    <container>creditserviceinteca</container>
-                                    <container>customerserviceinteca</container>
-                                    <container>mysql</container>
-                                </dependsOn>
-                                <wait>
-                                    <time>3000</time>
-                                </wait>
-                            </run>
-                        </image>
-                        <!-- customerserviceinteca -->
+
+                        <!--                        customerserviceinteca-->
                         <image>
                             <name>thomashoryn/customerserviceinteca</name>
                             <alias>customerserviceinteca</alias>
@@ -193,17 +150,38 @@
                                     <SPRING_DATASOURCE_URL>jdbc:mysql://mysqldb:3306/database
                                     </SPRING_DATASOURCE_URL>
                                     <SPRING_PROFILES_ACTIVE>mysql</SPRING_PROFILES_ACTIVE>
-                                    <MYSQL_ROOT_PASSWORD>password</MYSQL_ROOT_PASSWORD>
-                                    <SPRING_CREDITSERVICEINTECA_HOST>creditserviceinteca
-                                    </SPRING_CREDITSERVICEINTECA_HOST>
                                 </env>
                                 <dependsOn>
-                                    <container>creditserviceinteca</container>
-                                    <container>productserviceinteca</container>
                                     <container>mysql</container>
+                                    <container>creditserviceinteca</container>
                                 </dependsOn>
                                 <wait>
-                                    <time>4000</time>
+                                    <time>5000</time>
+                                </wait>
+                            </run>
+                        </image>
+                        <!--productserviceinteca-->
+                        <image>
+                            <name>thomashoryn/productserviceinteca</name>
+                            <alias>productserviceinteca</alias>
+                            <run>
+                                <ports>
+                                    <port>8100:8100</port>
+                                </ports>
+                                <links>
+                                    <link>mysqldb:mysqldb</link>
+                                </links>
+                                <env>
+                                    <SPRING_DATASOURCE_URL>jdbc:mysql://mysqldb:3306/database
+                                    </SPRING_DATASOURCE_URL>
+                                    <SPRING_PROFILES_ACTIVE>mysql</SPRING_PROFILES_ACTIVE>
+                                </env>
+                                <dependsOn>
+                                    <container>mysql</container>
+                                    <container>creditserviceinteca</container>
+                                </dependsOn>
+                                <wait>
+                                    <time>5000</time>
                                 </wait>
                             </run>
                         </image>
